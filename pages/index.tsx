@@ -185,21 +185,28 @@ export default function Home() {
                             className="flex-col"
                           >
                             {message.sourceDocs.map((doc, index) => (
+                              index === 0 && (
                               <div key={`messageSourceDocs-${index}`}>
                                 <AccordionItem value={`item-${index}`}>
                                   <AccordionTrigger>
-                                    <h3>Source {index + 1}</h3>
+                                    <h3>Source</h3>
                                   </AccordionTrigger>
                                   <AccordionContent>
                                     <ReactMarkdown linkTarget="_blank">
                                       {doc.pageContent}
                                     </ReactMarkdown>
                                     <p className="mt-2">
-                                      <b>Source:</b> {doc.metadata.source}
+                                    <div className="pdf-image">
+                                    <img
+                                      src="/images/WO2008-2-page1-1.png"
+                                      alt={`PDF Page 1 - Source ${index + 1}`}
+                                    />
+                                    </div>
                                     </p>
                                   </AccordionContent>
                                 </AccordionItem>
                               </div>
+                              )
                             ))}
                           </Accordion>
                         </div>

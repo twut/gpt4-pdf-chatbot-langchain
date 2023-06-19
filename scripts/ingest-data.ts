@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
@@ -5,6 +6,11 @@ import { pinecone } from '@/utils/pinecone-client';
 import { CustomPDFLoader } from '@/utils/customPDFLoader';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
+
+import { PDFDocument, rgb } from 'pdf-lib';
+import { createCanvas, loadImage } from 'canvas';
+import path from 'path';
+import * as pdfPoppler from 'pdf-poppler';
 
 /* Name of directory to retrieve your files from */
 const filePath = 'docs';
@@ -18,6 +24,30 @@ export const run = async () => {
 
     // const loader = new PDFLoader(filePath);
     const rawDocs = await directoryLoader.load();
+
+    // Ensure the output directory exists
+    const outputDir = path.resolve('public', 'images');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir);
+    }
+    console.log(`outputDir: ${outputDir}`);
+
+    // Convert the first page of each PDF to an image
+    for (const rawDoc of rawDocs) {
+      const pdfFilePath = rawDoc.metadata.source;
+      const outputImagePath = path.join(outputDir, `${path.basename(pdfFilePath, '.pdf')}-page1.png`);
+      console.log(`outputImagePath: ${outputImagePath}`);
+
+      const opts = {
+        format: 'png',
+        page: 1,
+        out_dir: path.dirname(outputImagePath),
+        out_prefix: path.basename(outputImagePath, '.png'),
+        scale: 1024 // Scale to 1024px width (optional)
+      };
+
+      await pdfPoppler.convert(pdfFilePath, opts);
+    }
 
     /* Split text into chunks */
     const textSplitter = new RecursiveCharacterTextSplitter({
