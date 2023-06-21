@@ -1,4 +1,5 @@
 import fs from 'fs';
+import pdfParse from 'pdf-parse';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
@@ -32,21 +33,26 @@ export const run = async () => {
     }
     console.log(`outputDir: ${outputDir}`);
 
-    // Convert the first page of each PDF to an image
+    // Convert each page of each PDF to an image
     for (const rawDoc of rawDocs) {
       const pdfFilePath = rawDoc.metadata.source;
-      const outputImagePath = path.join(outputDir, `${path.basename(pdfFilePath, '.pdf')}-page1.png`);
-      console.log(`outputImagePath: ${outputImagePath}`);
+      const pdf = await PDFDocument.load(fs.readFileSync(pdfFilePath));
+      const pageCount = pdf.getPages().length;
 
-      const opts = {
-        format: 'png',
-        page: 1,
-        out_dir: path.dirname(outputImagePath),
-        out_prefix: path.basename(outputImagePath, '.png'),
-        scale: 1024 // Scale to 1024px width (optional)
-      };
+      for (let i = 1; i <= pageCount; i++) {
+        const outputImagePath = path.join(outputDir, `${path.basename(pdfFilePath, '.pdf')}-page${i}.png`);
+        console.log(`outputImagePath: ${outputImagePath}`);
 
-      await pdfPoppler.convert(pdfFilePath, opts);
+        const opts = {
+          format: 'png',
+          page: i,
+          out_dir: path.dirname(outputImagePath),
+          out_prefix: path.basename(outputImagePath, '.png'),
+          scale: 1024 // Scale to 1024px width (optional)
+        };
+
+        await pdfPoppler.convert(pdfFilePath, opts);
+      }
     }
 
     /* Split text into chunks */
