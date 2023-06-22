@@ -12,6 +12,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import similarity from 'string-similarity';
 
 export default function Home() {
   const [query, setQuery] = useState<string>('');
@@ -40,6 +41,10 @@ export default function Home() {
   useEffect(() => {
     textAreaRef.current?.focus();
   }, []);
+
+  function calculateSimilarity(text1, text2) {
+    return similarity.compareTwoStrings(text1, text2);
+  }
 
   //handle form submission
   async function handleSubmit(e: any) {
@@ -81,11 +86,26 @@ export default function Home() {
       });
       const data = await response.json();
       console.log('data', data);
+  
+      const textAnswer = data.text;
+      const sourceDocuments = data.sourceDocuments;
+  
+      let maxSimilarity = 0;
+      let bestMatchPageIndex = 1;
+      sourceDocuments.forEach((doc, index) => {
+        const similarityScore = calculateSimilarity(textAnswer, doc.pageContent);
+        if (similarityScore > maxSimilarity) {
+          maxSimilarity = similarityScore;
+          bestMatchPageIndex = index + 1;
+        }
+      });
+  
+      const imageSrc = `/images/WO2008-2-page${bestMatchPageIndex}-${bestMatchPageIndex}.png`;
 
       if (data.error) {
         setError(data.error);
       } else {
-        setMessageState((state) => ({
+          setMessageState((state) => ({
           ...state,
           messages: [
             ...state.messages,
@@ -93,6 +113,8 @@ export default function Home() {
               type: 'apiMessage',
               message: data.text,
               sourceDocs: data.sourceDocuments,
+              imageSrc: imageSrc, // Add this line
+              bestMatchPageIndex: bestMatchPageIndex
             },
           ],
           history: [...state.history, [question, data.text]],
@@ -131,6 +153,9 @@ export default function Home() {
             <div className={styles.cloud}>
               <div ref={messageListRef} className={styles.messagelist}>
                 {messages.map((message, index) => {
+                  
+                  // console.log("Best Match Page Index:", message.bestMatchPageIndex);
+
                   let icon;
                   let className;
                   if (message.type === 'apiMessage') {
@@ -196,21 +221,18 @@ export default function Home() {
                                       {doc.pageContent}
                                     </ReactMarkdown>
                                     <p className="mt-2">
-                                    <div className="pdf-image">
-                                    <img
-                                      src="/images/WO2008-2-page1-1.png"
-                                      alt={`PDF Page 1 - Source ${index + 1}`}
-                                    />
-                                    </div>
+                                      <div className="pdf-image">
+                                      <img src={message.imageSrc} alt={`PDF Page ${message.bestMatchPageIndex} - Source ${index + 1}`} />
+                                      </div>
                                     </p>
                                   </AccordionContent>
                                 </AccordionItem>
                               </div>
                               )
                             ))}
-                          </Accordion>
-                        </div>
-                      )}
+                        </Accordion>
+                      </div>
+                    )}
                     </>
                   );
                 })}
