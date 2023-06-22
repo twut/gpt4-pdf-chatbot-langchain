@@ -99,8 +99,33 @@ export default function Home() {
           bestMatchPageIndex = index + 1;
         }
       });
+
   
-      const imageSrc = `/images/WO2008-2-page${bestMatchPageIndex}-${bestMatchPageIndex}.png`;
+      // Extract the PDF filename from the sourceDocuments
+      const pdfFilePath = data.sourceDocuments && data.sourceDocuments.length > 0
+        ? data.sourceDocuments[0].metadata.source // Extract the file path
+        : null;
+
+      const pdfFilename = pdfFilePath
+        ? pdfFilePath.match(/[^\\/]+\.[^\\/]+/)[0] // Extract the filename with extension from the file path
+        : null;
+
+      // Make an API call to get the image source
+      var imageSrc = null;
+      if (pdfFilename) {
+        const response = await fetch('/api/getImage', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            pdfFilename,
+            bestMatchPageIndex,
+          }),
+        });
+        const data = await response.json();
+        imageSrc = data.imageSrc;
+      }
 
       if (data.error) {
         setError(data.error);
